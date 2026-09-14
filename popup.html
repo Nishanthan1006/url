@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard AI — URL Security Scanner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #060b18;
+            --surface: rgba(255,255,255,0.04);
+            --surface-2: rgba(255,255,255,0.07);
+            --border: rgba(255,255,255,0.08);
+            --border-hover: rgba(255,255,255,0.18);
+            --text: #f0f4ff;
+            --muted: #6b7a99;
+            --accent: #4f7dff;
+            --accent-2: #a259ff;
+            --safe: #00d68f;
+            --safe-dim: rgba(0,214,143,0.12);
+            --danger: #ff4f6a;
+            --danger-dim: rgba(255,79,106,0.12);
+            --warn: #ffb347;
+        }
+
+        html, body {
+            width: 100%;
+            min-height: 100vh;
+            font-family: 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Full page centering layout */
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 16px;
+            background-image:
+                radial-gradient(ellipse at 20% 30%, rgba(79,125,255,0.12) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(162,89,255,0.10) 0%, transparent 50%);
+        }
+
+        /* Background Orbs */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(60px);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .bg-orb-1 {
+            width: 200px; height: 200px;
+            background: rgba(79,125,255,0.12);
+            top: -60px; left: -60px;
+        }
+        .bg-orb-2 {
+            width: 180px; height: 180px;
+            background: rgba(162,89,255,0.10);
+            bottom: -40px; right: -40px;
+        }
+
+        .wrapper {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 520px;
+            background: rgba(255,255,255,0.025);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow:
+                0 0 0 1px rgba(79,125,255,0.06),
+                0 32px 80px rgba(0,0,0,0.5),
+                0 8px 32px rgba(79,125,255,0.08);
+            backdrop-filter: blur(20px);
+        }
+
+        /* ── Header ─────────────────── */
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 24px 28px 18px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255,255,255,0.02);
+        }
+
+        .logo-wrap {
+            position: relative;
+            width: 40px; height: 40px;
+            flex-shrink: 0;
+        }
+        .logo-ring {
+            position: absolute; inset: 0;
+            border-radius: 50%;
+            background: conic-gradient(from 180deg, #4f7dff, #a259ff, #4f7dff);
+            padding: 2px;
+            animation: ring-spin 4s linear infinite;
+        }
+        @keyframes ring-spin { to { transform: rotate(360deg); } }
+        .logo-inner {
+            position: absolute; inset: 2px;
+            border-radius: 50%;
+            background: #0d1525;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+        }
+
+        .header-text {}
+        .header-title {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(90deg, #7da4ff, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.1;
+        }
+        .header-sub {
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 400;
+            letter-spacing: 0.2px;
+            margin-top: 3px;
+        }
+
+        .status-dot {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--safe);
+            font-weight: 600;
+        }
+        .status-dot span {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--safe);
+            box-shadow: 0 0 6px var(--safe);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%,100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        /* ── Body ────────────────────── */
+        .body {
+            padding: 24px 28px;
+        }
+
+        /* Input Row */
+        .input-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .input-label-text {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .input-badge {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--accent);
+            background: rgba(79,125,255,0.12);
+            border: 1px solid rgba(79,125,255,0.2);
+            padding: 3px 9px;
+            border-radius: 20px;
+        }
+
+        .input-wrap {
+            position: relative;
+            margin-bottom: 14px;
+        }
+        .input-icon {
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            pointer-events: none;
+        }
+        .url-input {
+            width: 100%;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            padding: 16px 16px 16px 46px;
+            font-size: 14px;
+            font-family: 'Inter', monospace;
+            color: var(--text);
+            transition: all 0.25s ease;
+            outline: none;
+        }
+        .url-input:focus {
+            border-color: rgba(79,125,255,0.6);
+            background: var(--surface-2);
+            box-shadow: 0 0 0 3px rgba(79,125,255,0.1);
+        }
+        .url-input::placeholder { color: rgba(107,122,153,0.6); }
+
+        /* Scan Button */
+        .scan-btn {
+            width: 100%;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #4f7dff 0%, #a259ff 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+            box-shadow: 0 4px 24px rgba(79,125,255,0.35);
+            letter-spacing: 0.2px;
+            position: relative;
+            overflow: hidden;
+        }
+        .scan-btn::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+            pointer-events: none;
+        }
+        .scan-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(79,125,255,0.45);
+        }
+        .scan-btn:active { transform: translateY(0); box-shadow: none; }
+        .scan-btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ── Loading ─────────────────── */
+        #loading {
+            display: none;
+            padding: 24px 20px;
+            text-align: center;
+        }
+        .scan-animation {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 14px;
+        }
+        .scan-ring {
+            position: absolute; inset: 0;
+            border-radius: 50%;
+            border: 2.5px solid transparent;
+            border-top-color: var(--accent);
+            animation: spin 0.9s linear infinite;
+        }
+        .scan-ring-2 {
+            position: absolute; inset: 7px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: var(--accent-2);
+            animation: spin 1.4s linear infinite reverse;
+        }
+        .scan-icon {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        .loading-sub {
+            font-size: 11px;
+            color: var(--muted);
+        }
+        .loading-dots span {
+            animation: blink 1.4s infinite;
+        }
+        .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink { 0%,80%,100%{opacity:0} 40%{opacity:1} }
+
+        /* ── Result Card ─────────────── */
+        #result {
+            display: none;
+            margin: 0 28px 20px;
+            border-radius: 16px;
+            overflow: hidden;
+            animation: slideUp 0.4s cubic-bezier(0.16,1,0.3,1);
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-safe {
+            background: var(--safe-dim);
+            border: 1.5px solid rgba(0,214,143,0.25);
+        }
+        .result-phishing {
+            background: var(--danger-dim);
+            border: 1.5px solid rgba(255,79,106,0.3);
+        }
+
+        .result-header {
+            padding: 20px 20px 14px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .result-icon-wrap {
+            width: 52px; height: 52px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 26px;
+            flex-shrink: 0;
+        }
+        .result-safe .result-icon-wrap { background: rgba(0,214,143,0.15); }
+        .result-phishing .result-icon-wrap { background: rgba(255,79,106,0.15); }
+
+        .result-label {
+            flex: 1;
+        }
+        .result-verdict {
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            line-height: 1.1;
+        }
+        .result-safe .result-verdict { color: var(--safe); }
+        .result-phishing .result-verdict { color: var(--danger); }
+
+        .result-desc {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 3px;
+            font-weight: 400;
+        }
+
+        /* Confidence Bar */
+        .confidence-wrap {
+            padding: 16px 20px;
+        }
+        .confidence-label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 9px;
+        }
+        .confidence-label-text {
+            font-size: 11px;
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+        .confidence-pct {
+            font-size: 15px;
+            font-weight: 800;
+        }
+        .result-safe .confidence-pct { color: var(--safe); }
+        .result-phishing .confidence-pct { color: var(--danger); }
+
+        .confidence-bar-bg {
+            height: 6px;
+            border-radius: 99px;
+            background: rgba(255,255,255,0.08);
+            overflow: hidden;
+        }
+        .confidence-bar-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+        }
+        .result-safe .confidence-bar-fill { background: linear-gradient(90deg, #00d68f, #00ffb3); }
+        .result-phishing .confidence-bar-fill { background: linear-gradient(90deg, #ff4f6a, #ff7a8a); }
+
+        /* ── XAI Section ─────────────── */
+        #xai-container {
+            display: none;
+            margin: 0 28px 24px;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+        .xai-header {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 10px;
+        }
+        .xai-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+        }
+        .xai-pill {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 20px;
+            background: rgba(162,89,255,0.15);
+            color: #c084fc;
+            border: 1px solid rgba(162,89,255,0.25);
+            font-weight: 600;
+        }
+
+        .xai-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 7px;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+        }
+        .xai-item::before {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 3px;
+        }
+        .xai-item.red::before { background: var(--danger); }
+        .xai-item.green::before { background: var(--safe); }
+        .xai-item:hover { border-color: var(--border-hover); background: var(--surface-2); }
+
+        .xai-feature-name {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .xai-feature-val {
+            font-size: 12px;
+            font-weight: 400;
+            color: var(--muted);
+            background: rgba(255,255,255,0.05);
+            border-radius: 5px;
+            padding: 2px 7px;
+            margin-left: 4px;
+        }
+        .xai-impact {
+            font-size: 11px;
+            font-weight: 700;
+            padding: 4px 11px;
+            border-radius: 20px;
+        }
+        .xai-item.red .xai-impact {
+            color: var(--danger);
+            background: rgba(255,79,106,0.12);
+        }
+        .xai-item.green .xai-impact {
+            color: var(--safe);
+            background: rgba(0,214,143,0.1);
+        }
+
+        /* ── Footer ──────────────────── */
+        .footer {
+            padding: 14px 28px 18px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .footer-brand {
+            font-size: 11px;
+            color: rgba(107,122,153,0.6);
+            font-weight: 500;
+        }
+        .footer-ml-tag {
+            font-size: 10px;
+            font-weight: 600;
+            color: rgba(79,125,255,0.7);
+            background: rgba(79,125,255,0.08);
+            border: 1px solid rgba(79,125,255,0.15);
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+
+<div class="wrapper">
+
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-wrap">
+            <div class="logo-ring"></div>
+            <div class="logo-inner">🛡️</div>
+        </div>
+        <div class="header-text">
+            <div class="header-title">PhishGuard AI</div>
+            <div class="header-sub">Real-time phishing URL detection</div>
+        </div>
+        <div class="status-dot">
+            <span></span> Online
+        </div>
+    </div>
+
+    <!-- Body -->
+    <div class="body">
+        <div class="input-label">
+            <span class="input-label-text">Target URL</span>
+            <span class="input-badge">Random Forest ML</span>
+        </div>
+
+        <div class="input-wrap">
+            <svg class="input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <input type="text" class="url-input" id="url-input" placeholder="https://example.com/path" autocomplete="off" spellcheck="false" />
+        </div>
+
+        <button class="scan-btn" id="scan-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            Analyze URL
+        </button>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading">
+        <div class="scan-animation">
+            <div class="scan-ring"></div>
+            <div class="scan-ring-2"></div>
+            <div class="scan-icon">🔍</div>
+        </div>
+        <div class="loading-text">Analyzing URL<span class="loading-dots"><span>.</span><span>.</span><span>.</span></span></div>
+        <div class="loading-sub">Extracting 26 ML features</div>
+    </div>
+
+    <!-- Result Card -->
+    <div id="result">
+        <div class="result-header">
+            <div class="result-icon-wrap" id="result-icon"></div>
+            <div class="result-label">
+                <div class="result-verdict" id="prediction"></div>
+                <div class="result-desc" id="result-desc"></div>
+            </div>
+        </div>
+        <div class="confidence-wrap">
+            <div class="confidence-label-row">
+                <span class="confidence-label-text">Model Confidence</span>
+                <span class="confidence-pct" id="confidence"></span>
+            </div>
+            <div class="confidence-bar-bg">
+                <div class="confidence-bar-fill" id="confidence-bar" style="width:0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- XAI Section -->
+    <div id="xai-container">
+        <div class="xai-header">
+            <span style="font-size:13px;">⚡</span>
+            <span class="xai-title">Explainability Report</span>
+            <span class="xai-pill">SHAP</span>
+        </div>
+        <div id="xai-list"></div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <span class="footer-brand">PhishGuard AI v2.0</span>
+        <span class="footer-ml-tag">Powered by Random Forest</span>
+    </div>
+
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
