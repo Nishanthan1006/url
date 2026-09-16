@@ -47,7 +47,7 @@ function scanURL(url) {
     }
 
     // 🌐 Production API URL (deployed on Render)
-    const API_BASE = 'https://phishing-url-detection.onrender.com';
+    const API_BASE = 'https://url-2ejq.onrender.com';
     fetch(`${API_BASE}/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -131,7 +131,7 @@ function displayError(error) {
             <span style="font-size:24px;">⚠️</span>
             <div>
                 <div style="font-size:13px;font-weight:700;color:#ffb347;margin-bottom:4px;">Cannot connect to server</div>
-                <div style="font-size:11px;color:#6b7a99;">Make sure the FastAPI server is running on localhost:8000</div>
+                <div style="font-size:11px;color:#6b7a99;">Ensure the backend API is online and reachable.</div>
             </div>
         </div>
     `;
